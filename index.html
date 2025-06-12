@@ -26,7 +26,7 @@
       padding: 1em;
       text-align: center;
     }
-    form {
+    form, .controls {
       background: #fff;
       padding: 1em;
       display: flex;
@@ -65,8 +65,23 @@
       <option value="Louise">Louise</option>
       <option value="Mathilde">Mathilde</option>
     </select>
+    <label>
+      <input type="checkbox" id="allDay" /> Journée entière
+    </label>
     <button type="submit">Ajouter</button>
   </form>
+
+  <div class="controls">
+    <label>Filtrer par personne :
+      <select id="filter-person">
+        <option value="">Tous</option>
+        <option value="Antonello">Antonello</option>
+        <option value="Geneviève">Geneviève</option>
+        <option value="Louise">Louise</option>
+        <option value="Mathilde">Mathilde</option>
+      </select>
+    </label>
+  </div>
 
   <div id="calendar"></div>
 
@@ -94,25 +109,39 @@
       initialView: 'dayGridMonth',
       height: 'auto',
       events: [],
+      eventClick: async function(info) {
+        if (confirm("Supprimer cet événement ?")) {
+          await db.collection("events").doc(info.event.id).delete();
+        }
+      }
     });
     calendar.render();
 
-    // 📂 Charger les événements Firestore
-    db.collection("events").onSnapshot((snapshot) => {
-      calendar.removeAllEvents();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        calendar.addEvent({
-          id: doc.id,
-          title: `${data.person} : ${data.title}`,
-          start: data.start,
-          end: data.end,
-          color: personColors[data.person] || "#000"
+    const filterSelect = document.getElementById("filter-person");
+    filterSelect.addEventListener("change", loadEvents);
+
+    function loadEvents() {
+      const filter = filterSelect.value;
+      db.collection("events").onSnapshot((snapshot) => {
+        calendar.removeAllEvents();
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (!filter || data.person === filter) {
+            calendar.addEvent({
+              id: doc.id,
+              title: `${data.person} : ${data.title}`,
+              start: data.start,
+              end: data.end,
+              color: personColors[data.person] || "#000",
+              allDay: data.allDay || false
+            });
+          }
         });
       });
-    });
+    }
 
-    // ➕ Ajout d'événement
+    loadEvents();
+
     document.getElementById('event-form').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -120,8 +149,9 @@
       const start = document.getElementById('start').value;
       const end = document.getElementById('end').value;
       const person = document.getElementById('person').value;
+      const allDay = document.getElementById('allDay').checked;
 
-      await db.collection("events").add({ title, start, end, person });
+      await db.collection("events").add({ title, start, end, person, allDay });
 
       e.target.reset();
       alert("Événement ajouté avec succès !");
