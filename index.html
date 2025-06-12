@@ -47,6 +47,9 @@
       padding: 1em;
       border-radius: 8px;
     }
+    .fc-day-sat, .fc-day-sun {
+      background-color: #f3f3f3;
+    }
   </style>
 </head>
 <body>
@@ -69,6 +72,7 @@
       <input type="checkbox" id="allDay" /> Journée entière
     </label>
     <button type="submit">Ajouter</button>
+    <button type="button" id="clear-all">🗑️ Vider tout</button>
   </form>
 
   <div class="controls">
@@ -105,8 +109,11 @@
       "Mathilde": "#DC3545"
     };
 
+    let unsubscribe = null;
+
     const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
       initialView: 'dayGridMonth',
+      firstDay: 1,
       height: 'auto',
       events: [],
       eventClick: async function(info) {
@@ -121,8 +128,9 @@
     filterSelect.addEventListener("change", loadEvents);
 
     function loadEvents() {
+      if (unsubscribe) unsubscribe();
       const filter = filterSelect.value;
-      db.collection("events").onSnapshot((snapshot) => {
+      unsubscribe = db.collection("events").onSnapshot((snapshot) => {
         calendar.removeAllEvents();
         snapshot.forEach(doc => {
           const data = doc.data();
@@ -130,10 +138,10 @@
             calendar.addEvent({
               id: doc.id,
               title: `${data.person} : ${data.title}`,
-              start: data.start,
-              end: data.end,
+              start: new Date(data.start),
+              end: new Date(data.end),
               color: personColors[data.person] || "#000",
-              allDay: data.allDay || false
+              allDay: !!data.allDay
             });
           }
         });
@@ -156,7 +164,15 @@
       e.target.reset();
       alert("Événement ajouté avec succès !");
     });
+
+    document.getElementById("clear-all").addEventListener("click", async () => {
+      if (confirm("Voulez-vous vraiment supprimer tous les événements ?")) {
+        const snapshot = await db.collection("events").get();
+        const batch = db.batch();
+        snapshot.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      }
+    });
   </script>
 </body>
 </html>
- 
