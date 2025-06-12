@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agenda Partagé Famille</title>
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: #f4f4f4;
+    }
+    header {
+      background-color: #333;
+      color: #fff;
+      padding: 1em;
+      text-align: center;
+    }
+    form {
+      background: #fff;
+      padding: 1em;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1em;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+    form input, form select, form button {
+      flex: 1 1 200px;
+      padding: 0.5em;
+      font-size: 1em;
+    }
+    #calendar {
+      max-width: 90%;
+      margin: 2em auto;
+      background: white;
+      padding: 1em;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📅 Agenda partagé – Famille</h1>
+  </header>
+
+  <form id="event-form" action="https://formspree.io/f/xqabqbpk" method="POST">
+    <input type="text" name="title" placeholder="Titre de l'événement" required />
+    <input type="datetime-local" name="start" required />
+    <input type="datetime-local" name="end" required />
+    <select name="person" required>
+      <option value="">Qui ?</option>
+      <option value="Antonello">Antonello</option>
+      <option value="Geneviève">Geneviève</option>
+      <option value="Louise">Louise</option>
+      <option value="Mathilde">Mathilde</option>
+    </select>
+    <button type="submit">Ajouter</button>
+  </form>
+
+  <div id="calendar"></div>
+
+  <script>
+    const calendarEl = document.getElementById('calendar');
+
+    const personColors = {
+      "Antonello": "#007BFF",
+      "Geneviève": "#28A745",
+      "Louise": "#6F42C1",
+      "Mathilde": "#DC3545"
+    };
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      height: 'auto',
+      events: []
+    });
+
+    calendar.render();
+
+    const form = document.getElementById('event-form');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const title = formData.get('title');
+      const start = formData.get('start');
+      const end = formData.get('end');
+      const person = formData.get('person');
+
+      const color = personColors[person] || "#000";
+
+      // Ajout immédiat à l'agenda
+      calendar.addEvent({
+        title: `${person} : ${title}`,
+        start: start,
+        end: end,
+        color: color
+      });
+
+      // Envoi à Formspree
+      fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      }).then(response => {
+        if (response.ok) {
+          alert("Événement ajouté et envoyé !");
+          form.reset();
+        } else {
+          alert("Erreur lors de l'envoi du formulaire.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>
