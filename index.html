@@ -59,6 +59,9 @@
 
   <form id="event-form">
     <input type="text" id="title" placeholder="Titre de l'événement" required />
+    <label>
+      <input type="checkbox" id="allDay" /> Journée entière
+    </label>
     <input type="datetime-local" id="start" required />
     <input type="datetime-local" id="end" required />
     <select id="person" required>
@@ -68,9 +71,6 @@
       <option value="Louise">Louise</option>
       <option value="Mathilde">Mathilde</option>
     </select>
-    <label>
-      <input type="checkbox" id="allDay" /> Journée entière
-    </label>
     <button type="submit">Ajouter</button>
     <button type="button" id="clear-all">🗑️ Vider tout</button>
   </form>
@@ -154,10 +154,22 @@
       e.preventDefault();
 
       const title = document.getElementById('title').value;
-      const start = document.getElementById('start').value;
-      const end = document.getElementById('end').value;
-      const person = document.getElementById('person').value;
+      const startInput = document.getElementById('start');
+      const endInput = document.getElementById('end');
       const allDay = document.getElementById('allDay').checked;
+
+      let start = startInput.value;
+      let end = endInput.value;
+
+      // Si journée entière cochée, ignorer l'heure (ou forcer 00:00)
+      if (allDay) {
+        start = start.split('T')[0] + 'T00:00';
+        end = end.split('T')[0] + 'T00:00';
+        startInput.removeAttribute('required');
+        endInput.removeAttribute('required');
+      }
+
+      const person = document.getElementById('person').value;
 
       await db.collection("events").add({ title, start, end, person, allDay });
 
